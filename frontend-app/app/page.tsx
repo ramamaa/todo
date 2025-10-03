@@ -1,9 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-
+type Task = { id: string; name: string; isCompleted: boolean };
 export default function Home() {
   const [newTask, setNewTask] = useState("");
-  const [tasks, setTasks] = useState<{ id: string; name: string }[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [status, setStatus] = useState("All");
+
+  const [editingId, setEditingId] = useState("");
 
   async function createNewTask() {
     if (newTask) {
@@ -26,19 +29,26 @@ export default function Home() {
       });
   }
 
-  async function editTask(task: { id: string; name: string }) {
-    const newName = prompt("Edit", task.name);
-    if (newName) {
-      await fetch(`http://localhost:4000/tasks/${task.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name: newName }),
-      });
+  async function editTask(task: Task) {
+    setEditingId(task.id);
+    // const newName = prompt("Edit", task.name);
+    // if (newName) {
+    //   await fetch(`http://localhost:4000/tasks/${task.id}`, {
+    //     method: "PUT",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //     },
+    //     body: JSON.stringify({ name: newName }),
+    //   });
 
-      loadTasks();
-    }
+    //   loadTasks();
+    // }
+  }
+
+  async function toggleCompleted(id: string) {
+    await fetch(`http://localhost:4000/tasks/${id}/check`, {
+      method: "PATCH",
+    });
   }
 
   async function deleteTask(id: string) {
@@ -77,26 +87,58 @@ export default function Home() {
               Add
             </button>
           </div>
+
+          <div role="tablist" className="tabs tabs-box mt-5">
+            {["All", "Active", "Completed"].map((s) => (
+              <a
+                key={s}
+                role="tab"
+                onClick={() => setStatus(s)}
+                className={`tab flex-1 ${status === s ? "tab-active" : ""}`}
+              >
+                {s}
+              </a>
+            ))}
+          </div>
+
           {tasks.map((task) => (
             <div
               className="card p-4 border border-base-300 mt-4 bg-[#F9FAFB]"
               key={task.id}
             >
-              <div className="flex items-center gap-1">
-                <div className="flex-1">{task.name}</div>
-                <button
+              {editingId === task.id ? (
+                <div className="flex gap-3">
+                  <input defaultValue={task.name} />
+                  <button>Done</button>
+                </div>
+              ) : (
+                <div
                   onClick={() => editTask(task)}
-                  className="btn btn-xs btn-ghost"
+                  className="flex items-center gap-1 cursor-pointer"
                 >
-                  Edit
-                </button>
-                <button
-                  className="bg-[#FEF2F2] text-[#EF4444] text-sm font-normal rounded-md py-1.5 px-3"
-                  onClick={() => deleteTask(task.id)}
-                >
-                  Delete
-                </button>
-              </div>
+                  <input
+                    onChange={() => {
+                      toggleCompleted(task.id);
+                    }}
+                    defaultChecked={task.isCompleted}
+                    type="checkbox"
+                    className="checkbox checkbox-info"
+                  />
+                  <div className="flex-1">{task.name}</div>
+                  {/* <button
+                    onClick={() => editTask(task)}
+                    className="btn btn-xs btn-ghost"
+                  >
+                    Edit
+                  </button> */}
+                  <button
+                    className="bg-[#FEF2F2] text-[#EF4444] text-sm font-normal rounded-md py-1.5 px-3"
+                    onClick={() => deleteTask(task.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
